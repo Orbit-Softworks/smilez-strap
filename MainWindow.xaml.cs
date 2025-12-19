@@ -36,7 +36,7 @@ namespace SmilezStrap
 
         private void Discord_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start(new ProcessStartInfo("https://discord.gg/yourinvite") { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo("https://discord.gg/JSJcNC4Jv9") { UseShellExecute = true });
         }
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
