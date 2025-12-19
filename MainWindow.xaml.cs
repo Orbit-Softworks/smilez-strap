@@ -14,7 +14,6 @@ namespace SmilezStrap
     {
         private static readonly string VERSION = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
         private const string GITHUB_REPO = "Orbit-Softworks/smilezstrap";
-
         private readonly HttpClient httpClient = new HttpClient();
         private string appDataPath;
         private Config config;
@@ -50,9 +49,8 @@ namespace SmilezStrap
         {
             bool canContinue = await CheckForBootstrapperUpdate();
             if (!canContinue) return;
-
             this.Hide();
-            
+
             var progressWindow = new ProgressWindow(false);
             progressWindow.Closed += (s, args) =>
             {
@@ -65,9 +63,8 @@ namespace SmilezStrap
         {
             bool canContinue = await CheckForBootstrapperUpdate();
             if (!canContinue) return;
-
             this.Hide();
-            
+
             var progressWindow = new ProgressWindow(true);
             progressWindow.Closed += (s, args) =>
             {
@@ -83,7 +80,7 @@ namespace SmilezStrap
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ButtonState == MouseButtonState.Pressed)
+            if (e.LeftButton == MouseButtonState.Pressed)
                 this.DragMove();
         }
 
@@ -128,7 +125,6 @@ namespace SmilezStrap
                 var response = await httpClient.GetStringAsync($"https://api.github.com/repos/{GITHUB_REPO}/releases/latest");
                 var releaseInfo = JsonDocument.Parse(response);
                 string latestVersion = releaseInfo.RootElement.GetProperty("tag_name").GetString().TrimStart('v');
-
                 if (new Version(latestVersion) > new Version(VERSION))
                 {
                     string downloadUrl = releaseInfo.RootElement.GetProperty("html_url").GetString();
@@ -138,7 +134,6 @@ namespace SmilezStrap
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Information
                     );
-
                     if (result == MessageBoxResult.Yes)
                     {
                         Process.Start(new ProcessStartInfo(downloadUrl) { UseShellExecute = true });
