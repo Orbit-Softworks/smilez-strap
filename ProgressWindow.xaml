@@ -3,7 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="SmilezStrap" Height="200" Width="450"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Topmost="True">
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Topmost="True"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
 
     <Border Background="Transparent" Padding="10">
         <Border.Effect>
@@ -26,9 +30,11 @@
                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="SmilezStrap" Foreground="White" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="SmilezStrap" Foreground="White" FontSize="14" FontWeight="SemiBold"
+                                       TextOptions.TextFormattingMode="Ideal"/>
                             <TextBlock x:Name="SubtitleText" Text="Launching Roblox"
-                                       Foreground="#BBBBBB" FontSize="11" Margin="0,2,0,0"/>
+                                       Foreground="#CCCCCC" FontSize="11" Margin="0,2,0,0"
+                                       TextOptions.TextFormattingMode="Ideal"/>
                         </StackPanel>
                     </StackPanel>
                 </Grid>
@@ -36,9 +42,11 @@
                 <!-- Status and Progress -->
                 <StackPanel Grid.Row="1" VerticalAlignment="Center">
                     <Grid Margin="0,0,0,12">
-                        <TextBlock x:Name="StatusText" Text="Initializing..." Foreground="White" FontSize="13"/>
-                        <TextBlock x:Name="PercentText" Text="0%" Foreground="#AAAAAA" FontSize="12"
-                                 HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="StatusText" Text="Initializing..." Foreground="White" FontSize="13"
+                                   TextOptions.TextFormattingMode="Ideal"/>
+                        <TextBlock x:Name="PercentText" Text="0%" Foreground="#BBBBBB" FontSize="12"
+                                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                                 TextOptions.TextFormattingMode="Ideal"/>
                     </Grid>
                     <Border Background="#2A2A2A" Height="8" CornerRadius="4">
                         <Grid>
@@ -46,8 +54,9 @@
                                      HorizontalAlignment="Left" Width="0" RadiusX="4" RadiusY="4"/>
                         </Grid>
                     </Border>
-                    <TextBlock x:Name="DetailText" Text="" Foreground="#888888" FontSize="10"
-                             TextWrapping="Wrap" Margin="0,12,0,0" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="DetailText" Text="" Foreground="#999999" FontSize="10"
+                             TextWrapping="Wrap" Margin="0,12,0,0" HorizontalAlignment="Center"
+                             TextOptions.TextFormattingMode="Ideal"/>
                 </StackPanel>
 
                 <!-- Buttons -->
