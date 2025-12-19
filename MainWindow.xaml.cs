@@ -13,7 +13,7 @@ namespace SmilezStrap
     public partial class MainWindow : Window
     {
         private static readonly string VERSION = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
-        private const string GITHUB_REPO = "Orbit-Softworks/smilezstrap";
+        private const string GITHUB_REPO = "Orbit-Softworks/smilez-strap";
         private readonly HttpClient httpClient = new HttpClient();
         private string appDataPath;
         private Config config;
@@ -31,7 +31,7 @@ namespace SmilezStrap
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start(new ProcessStartInfo("https://github.com/Orbit-Softworks/smilezstrap") { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo("https://github.com/Orbit-Softworks/smilez-strap") { UseShellExecute = true });
         }
 
         private void Discord_Click(object sender, RoutedEventArgs e)
