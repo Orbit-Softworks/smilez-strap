@@ -1,7 +1,7 @@
 #define MyAppName "SmilezStrap"
 #define MyAppVersion GetVersionNumbersString("publish\SmilezStrap.exe")
 #define MyAppPublisher "Orbit Softworks"
-#define MyAppURL "https://github.com/Orbit-Softworks/smilezstrap"
+#define MyAppURL "https://github.com/Orbit-Softworks/smilez-strap"
 #define MyAppExeName "SmilezStrap.exe"
 
 [Setup]
@@ -22,7 +22,6 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\{#MyAppExeName}
-// SetupIconFile removed — uses icon embedded in exe
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
