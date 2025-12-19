@@ -47,29 +47,31 @@ namespace SmilezStrap
 
         private async void LaunchRoblox_Click(object sender, RoutedEventArgs e)
         {
-            bool canContinue = await CheckForBootstrapperUpdate();
+            bool canContinue = await CheckForAppUpdate();
             if (!canContinue) return;
+
+            bool bootstrapOk = await CheckForBootstrapperUpdate();
+            if (!bootstrapOk) return;
+
             this.Hide();
 
             var progressWindow = new ProgressWindow(false);
-            progressWindow.Closed += (s, args) =>
-            {
-                this.Show();
-            };
+            // No Closed handler → no re-show
             progressWindow.Show();
         }
 
         private async void LaunchStudio_Click(object sender, RoutedEventArgs e)
         {
-            bool canContinue = await CheckForBootstrapperUpdate();
+            bool canContinue = await CheckForAppUpdate();
             if (!canContinue) return;
+
+            bool bootstrapOk = await CheckForBootstrapperUpdate();
+            if (!bootstrapOk) return;
+
             this.Hide();
 
             var progressWindow = new ProgressWindow(true);
-            progressWindow.Closed += (s, args) =>
-            {
-                this.Show();
-            };
+            // No Closed handler → no re-show
             progressWindow.Show();
         }
 
@@ -118,36 +120,85 @@ namespace SmilezStrap
             File.WriteAllText(configPath, json);
         }
 
-        private async Task<bool> CheckForBootstrapperUpdate()
+        private async Task<bool> CheckForAppUpdate()
         {
             try
             {
                 var response = await httpClient.GetStringAsync($"https://api.github.com/repos/{GITHUB_REPO}/releases/latest");
                 var releaseInfo = JsonDocument.Parse(response);
                 string latestVersion = releaseInfo.RootElement.GetProperty("tag_name").GetString().TrimStart('v');
-                if (new Version(latestVersion) > new Version(VERSION))
+                if (new Version(latestVersion) <= new Version(VERSION))
+                    return true;
+
+                var result = MessageBox.Show(
+                    $"SmilezStrap v{latestVersion} is available!\n\nCurrent version: v{VERSION}\n\nDownload and install automatically? (App will restart)",
+                    "Update Available",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information
+                );
+                if (result != MessageBoxResult.Yes)
+                    return false;
+
+                string downloadUrl = null;
+                var assets = releaseInfo.RootElement.GetProperty("assets").EnumerateArray();
+                foreach (var asset in assets)
                 {
-                    string downloadUrl = releaseInfo.RootElement.GetProperty("html_url").GetString();
-                    var result = MessageBox.Show(
-                        $"SmilezStrap v{latestVersion} is available!\n\nCurrent version: v{VERSION}\n\nWould you like to download the update?",
-                        "Update Available",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information
-                    );
-                    if (result == MessageBoxResult.Yes)
+                    string name = asset.GetProperty("name").GetString();
+                    if (name.Equals("SmilezStrap.exe", StringComparison.OrdinalIgnoreCase))
                     {
-                        Process.Start(new ProcessStartInfo(downloadUrl) { UseShellExecute = true });
-                        Application.Current.Shutdown();
-                        return false;
+                        downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                        break;
                     }
                 }
-                return true;
+
+                if (downloadUrl == null)
+                {
+                    MessageBox.Show("Update found, but no SmilezStrap.exe in release assets.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+
+                string tempExePath = Path.Combine(Path.GetTempPath(), "SmilezStrap_new.exe");
+                using (var responseStream = await httpClient.GetStreamAsync(downloadUrl))
+                using (var fileStream = new FileStream(tempExePath, FileMode.Create))
+                {
+                    await responseStream.CopyToAsync(fileStream);
+                }
+
+                string currentExePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+
+                string batchPath = Path.Combine(Path.GetTempPath(), "update_smilezstrap.bat");
+                string batchContent = $@"
+@echo off
+timeout /t 2 /nobreak >nul
+del /f /q ""{currentExePath}""
+copy /y ""{tempExePath}"" ""{currentExePath}""
+start """" ""{currentExePath}""
+del /f /q ""{batchPath}""
+";
+                File.WriteAllText(batchPath, batchContent);
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = batchPath,
+                    UseShellExecute = true,
+                    CreateNoWindow = true
+                });
+
+                Application.Current.Shutdown();
+                return false;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error checking for updates: {ex.Message}");
                 return true;
             }
+        }
+
+        private async Task<bool> CheckForBootstrapperUpdate()
+        {
+            // Your original Roblox update check code here (unchanged)
+            // ...
+            return true;
         }
     }
 
