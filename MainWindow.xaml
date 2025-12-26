@@ -316,53 +316,36 @@
                                 </StackPanel>
                             </Border>
                             
-                            <!-- Additional Settings -->
-                            <Border Background="#1A1A1A" CornerRadius="6" Padding="15" BorderThickness="1" BorderBrush="#333333">
+                            <!-- Updates Section -->
+                            <Border Background="#1A1A1A" CornerRadius="6" Padding="15" Margin="0,0,0,15" BorderThickness="1" BorderBrush="#333333">
                                 <StackPanel>
-                                    <TextBlock Text="General Settings" FontSize="14" FontWeight="SemiBold" 
+                                    <TextBlock Text="Updates" FontSize="14" FontWeight="SemiBold" 
                                              Foreground="White" Margin="0,0,0,10"/>
                                     
-                                    <Grid Margin="0,5,0,5">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        
-                                        <TextBlock Text="Auto-remove desktop shortcuts" 
-                                                   Foreground="#CCC" FontSize="12" 
-                                                   VerticalAlignment="Center"/>
-                                        
-                                        <CheckBox x:Name="AutoRemoveCheckBox" Grid.Column="1" 
-                                                  IsChecked="True" VerticalAlignment="Center"/>
-                                    </Grid>
+                                    <Button x:Name="CheckUpdatesButton" 
+                                            Content="Check for Updates" 
+                                            Height="35" 
+                                            Style="{StaticResource SettingsButton}"
+                                            Click="CheckUpdatesButton_Click" Cursor="Hand"/>
                                     
-                                    <Grid Margin="0,5,0,5">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        
-                                        <TextBlock Text="Check for updates automatically" 
-                                                   Foreground="#CCC" FontSize="12" 
-                                                   VerticalAlignment="Center"/>
-                                        
-                                        <CheckBox x:Name="AutoUpdateCheckBox" Grid.Column="1" 
-                                                  IsChecked="True" VerticalAlignment="Center"/>
-                                    </Grid>
+                                    <TextBlock Text="Check for the latest version of SmilezStrap" 
+                                               Foreground="#888" FontSize="11" 
+                                               Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Info Section -->
+                            <Border Background="#1A1A1A" CornerRadius="6" Padding="15" BorderThickness="1" BorderBrush="#333333">
+                                <StackPanel>
+                                    <TextBlock Text="Information" FontSize="14" FontWeight="SemiBold" 
+                                             Foreground="White" Margin="0,0,0,10"/>
                                     
-                                    <Grid Margin="0,5,0,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        
-                                        <TextBlock Text="Apply FPS limit automatically on launch" 
-                                                   Foreground="#CCC" FontSize="12" 
-                                                   VerticalAlignment="Center"/>
-                                        
-                                        <CheckBox x:Name="AutoFpsCheckBox" Grid.Column="1" 
-                                                  IsChecked="True" VerticalAlignment="Center"/>
-                                    </Grid>
+                                    <TextBlock Text="• FPS limit is automatically applied when launching Roblox" 
+                                               Foreground="#CCC" FontSize="12" Margin="0,0,0,5"/>
+                                    <TextBlock Text="• Desktop shortcuts are automatically managed" 
+                                               Foreground="#CCC" FontSize="12" Margin="0,0,0,5"/>
+                                    <TextBlock Text="• Check for updates regularly for new features" 
+                                               Foreground="#CCC" FontSize="12"/>
                                 </StackPanel>
                             </Border>
                             
