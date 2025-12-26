@@ -27,7 +27,8 @@ namespace SmilezStrap
             isStudio = launchStudio;
             cancellationTokenSource = new CancellationTokenSource();
             
-            // Removed SubtitleText reference since it doesn't exist in XAML
+            // SubtitleText doesn't exist in XAML, so removed this line
+            // If you need this functionality, add a SubtitleText control to your XAML
             
             Loaded += async (s, e) => await StartLaunchProcess();
         }
@@ -119,7 +120,7 @@ namespace SmilezStrap
             SetProgress(10);
             token.ThrowIfCancellationRequested();
 
-            string installedVersion = GetInstalledRobloxVersion();
+            string? installedVersion = GetInstalledRobloxVersion();
             string latestVersion = await GetLatestRobloxVersion();
 
             bool needsUpdate = installedVersion == null || installedVersion != latestVersion;
@@ -188,7 +189,7 @@ namespace SmilezStrap
                 
                 string exePath = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "Roblox", "Versions", installedVersion, "RobloxPlayerBeta.exe");
+                    "Roblox", "Versions", installedVersion!, "RobloxPlayerBeta.exe");
 
                 if (!File.Exists(exePath))
                     throw new Exception("Roblox executable not found.");
@@ -218,7 +219,7 @@ namespace SmilezStrap
             SetProgress(10);
             token.ThrowIfCancellationRequested();
 
-            string installedVersion = GetInstalledStudioVersion();
+            string? installedVersion = GetInstalledStudioVersion();
             string latestVersion = await GetLatestStudioVersion();
 
             bool needsUpdate = installedVersion == null || installedVersion != latestVersion;
@@ -294,7 +295,7 @@ namespace SmilezStrap
 
                 string exePath = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "Roblox", "Versions", installedVersion, "RobloxStudioBeta.exe");
+                    "Roblox", "Versions", installedVersion!, "RobloxStudioBeta.exe");
 
                 if (!File.Exists(exePath))
                     throw new Exception("Studio executable not found.");
