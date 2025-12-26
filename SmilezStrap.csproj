@@ -12,14 +12,6 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
-  <!-- REMOVE or COMMENT OUT the package references we added earlier -->
-  <!--
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.8" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
-  </ItemGroup>
-  -->
-
   <ItemGroup>
     <None Include="icon.ico" />
   </ItemGroup>
