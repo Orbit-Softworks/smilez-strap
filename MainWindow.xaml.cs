@@ -15,8 +15,8 @@ namespace SmilezStrap
         private static readonly string VERSION = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
         private const string GITHUB_REPO = "Orbit-Softworks/smilez-strap";
         private readonly HttpClient httpClient = new HttpClient();
-        private string appDataPath = null!;
-        private Config config = null!;
+        private string? appDataPath;
+        private Config? config;
 
         public MainWindow()
         {
@@ -100,7 +100,7 @@ namespace SmilezStrap
 
         private void LoadConfig()
         {
-            string configPath = Path.Combine(appDataPath, "config.json");
+            string configPath = Path.Combine(appDataPath!, "config.json");
             if (File.Exists(configPath))
             {
                 string json = File.ReadAllText(configPath);
@@ -115,7 +115,7 @@ namespace SmilezStrap
 
         private void SaveConfig()
         {
-            string configPath = Path.Combine(appDataPath, "config.json");
+            string configPath = Path.Combine(appDataPath!, "config.json");
             string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(configPath, json);
         }
@@ -126,14 +126,22 @@ namespace SmilezStrap
             {
                 var response = await httpClient.GetStringAsync($"https://api.github.com/repos/{GITHUB_REPO}/releases/latest");
                 var releaseInfo = JsonDocument.Parse(response);
-                string latestVersion = releaseInfo.RootElement.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "1.0.0";
+                string? latestVersion = releaseInfo.RootElement.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "1.0.0";
+                
+                if (string.IsNullOrEmpty(latestVersion))
+                    return true;
                 
                 // Parse versions safely
-                Version currentVersion = new Version(VERSION);
-                Version latestVersionObj = new Version(latestVersion);
-                
-                if (latestVersionObj <= currentVersion)
-                    return true;
+                if (Version.TryParse(VERSION, out Version? currentVersion) && 
+                    Version.TryParse(latestVersion, out Version? latestVersionObj))
+                {
+                    if (latestVersionObj <= currentVersion)
+                        return true;
+                }
+                else
+                {
+                    return true; // If version parsing fails, continue anyway
+                }
 
                 var result = MessageBox.Show(
                     $"SmilezStrap v{latestVersion} is available!\n\nCurrent version: v{VERSION}\n\nDownload and install automatically? (App will restart)",
@@ -169,9 +177,8 @@ namespace SmilezStrap
                     await responseStream.CopyToAsync(fileStream);
                 }
 
-                string currentExePath = System.Reflection.Assembly.GetExecutingAssembly().Location ?? 
-                                        Process.GetCurrentProcess().MainModule?.FileName ??
-                                        throw new InvalidOperationException("Cannot determine executable path");
+                string currentExePath = Process.GetCurrentProcess().MainModule?.FileName ??
+                                        System.AppContext.BaseDirectory + "SmilezStrap.exe";
 
                 string batchPath = Path.Combine(Path.GetTempPath(), "update_smilezstrap.bat");
                 string batchContent = $@"
@@ -204,7 +211,6 @@ del /f /q ""{batchPath}""
         private async Task<bool> CheckForBootstrapperUpdate()
         {
             // Your original Roblox update check code here (unchanged)
-            // ...
             return true;
         }
     }
