@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Animation;
 
+// Add this alias to fix Path ambiguity
+using IOPath = System.IO.Path;
+
 namespace SmilezStrap
 {
     public partial class ProgressWindow : Window
@@ -27,9 +30,7 @@ namespace SmilezStrap
             isStudio = launchStudio;
             cancellationTokenSource = new CancellationTokenSource();
             
-            // SubtitleText doesn't exist in XAML, so removed this line
-            // If you need this functionality, add a SubtitleText control to your XAML
-            
+            // REMOVED SubtitleText reference - this line should not exist
             Loaded += async (s, e) => await StartLaunchProcess();
         }
 
@@ -128,8 +129,8 @@ namespace SmilezStrap
             if (needsUpdate)
             {
                 UpdateStatus("Downloading Roblox...", "This may take a few minutes");
-                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "SmilezStrap", "RobloxPlayerInstaller.exe");
-                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(tempPath)!);
+                string tempPath = IOPath.Combine(IOPath.GetTempPath(), "SmilezStrap", "RobloxPlayerInstaller.exe");
+                Directory.CreateDirectory(IOPath.GetDirectoryName(tempPath)!);
 
                 var downloadProgress = new Progress<int>(p =>
                 {
@@ -187,7 +188,7 @@ namespace SmilezStrap
             {
                 await Task.Delay(500, token);
                 
-                string exePath = System.IO.Path.Combine(
+                string exePath = IOPath.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions", installedVersion!, "RobloxPlayerBeta.exe");
 
@@ -227,8 +228,8 @@ namespace SmilezStrap
             if (needsUpdate)
             {
                 UpdateStatus("Downloading Roblox Studio...", "This may take a few minutes");
-                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "SmilezStrap", "RobloxStudioInstaller.exe");
-                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(tempPath)!);
+                string tempPath = IOPath.Combine(IOPath.GetTempPath(), "SmilezStrap", "RobloxStudioInstaller.exe");
+                Directory.CreateDirectory(IOPath.GetDirectoryName(tempPath)!);
 
                 var downloadProgress = new Progress<int>(p =>
                 {
@@ -293,7 +294,7 @@ namespace SmilezStrap
             {
                 await Task.Delay(500, token);
 
-                string exePath = System.IO.Path.Combine(
+                string exePath = IOPath.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions", installedVersion!, "RobloxStudioBeta.exe");
 
@@ -327,7 +328,7 @@ namespace SmilezStrap
 
                 foreach (var shortcut in shortcuts)
                 {
-                    string shortcutPath = System.IO.Path.Combine(desktopPath, shortcut);
+                    string shortcutPath = IOPath.Combine(desktopPath, shortcut);
                     if (File.Exists(shortcutPath))
                     {
                         File.Delete(shortcutPath);
@@ -359,18 +360,18 @@ namespace SmilezStrap
         {
             try
             {
-                string versionsPath = System.IO.Path.Combine(
+                string versionsPath = IOPath.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions");
 
                 if (!Directory.Exists(versionsPath)) return null;
 
                 var versionDirs = Directory.GetDirectories(versionsPath)
-                    .Where(d => File.Exists(System.IO.Path.Combine(d, "RobloxPlayerBeta.exe")))
+                    .Where(d => File.Exists(IOPath.Combine(d, "RobloxPlayerBeta.exe")))
                     .OrderByDescending(d => Directory.GetCreationTime(d))
                     .ToList();
 
-                return versionDirs.Any() ? System.IO.Path.GetFileName(versionDirs.First()) : null;
+                return versionDirs.Any() ? IOPath.GetFileName(versionDirs.First()) : null;
             }
             catch
             {
@@ -382,18 +383,18 @@ namespace SmilezStrap
         {
             try
             {
-                string versionsPath = System.IO.Path.Combine(
+                string versionsPath = IOPath.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions");
 
                 if (!Directory.Exists(versionsPath)) return null;
 
                 var studioDirs = Directory.GetDirectories(versionsPath)
-                    .Where(d => File.Exists(System.IO.Path.Combine(d, "RobloxStudioBeta.exe")))
+                    .Where(d => File.Exists(IOPath.Combine(d, "RobloxStudioBeta.exe")))
                     .OrderByDescending(d => Directory.GetLastWriteTime(d))
                     .ToList();
 
-                return studioDirs.Any() ? System.IO.Path.GetFileName(studioDirs.First()) : null;
+                return studioDirs.Any() ? IOPath.GetFileName(studioDirs.First()) : null;
             }
             catch
             {
