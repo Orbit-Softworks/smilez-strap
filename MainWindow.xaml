@@ -86,6 +86,29 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <!-- Settings Button Style -->
+        <Style x:Key="SettingsButton" TargetType="Button">
+            <Setter Property="Background" Value="#8B0000"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#A00000"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Border Background="Transparent" Padding="10">
@@ -159,7 +182,7 @@
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="Button">
-                                                    <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                                    <Border Background="{TemplateBinding Background}">
                                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
                                                 </ControlTemplate>
@@ -181,7 +204,7 @@
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="Button">
-                                                    <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                                    <Border Background="{TemplateBinding Background}">
                                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
                                                 </ControlTemplate>
@@ -279,31 +302,8 @@
                                         
                                         <Button x:Name="SetFpsButton" Grid.Column="1" 
                                                 Content="Apply" Width="80" Height="35" 
-                                                Margin="10,0,0,0" Background="#8B0000" 
-                                                Foreground="White" BorderThickness="0" 
-                                                CornerRadius="4" FontSize="12"
-                                                Click="SetFpsButton_Click" Cursor="Hand">
-                                            <Button.Style>
-                                                <Style TargetType="Button">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate TargetType="Button">
-                                                                <Border Background="{TemplateBinding Background}" 
-                                                                        CornerRadius="4">
-                                                                    <ContentPresenter HorizontalAlignment="Center" 
-                                                                                      VerticalAlignment="Center"/>
-                                                                </Border>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                    <Style.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="#A00000"/>
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
+                                                Margin="10,0,0,0" Style="{StaticResource SettingsButton}"
+                                                Click="SetFpsButton_Click" Cursor="Hand"/>
                                     </Grid>
                                     
                                     <TextBlock Text="Set FPS limit for Roblox games (1-999)" 
