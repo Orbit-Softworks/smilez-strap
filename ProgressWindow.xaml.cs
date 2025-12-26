@@ -8,14 +8,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Animation;
-using System.Windows.Shapes;
 
 namespace SmilezStrap
 {
     public partial class ProgressWindow : Window
     {
         private readonly HttpClient httpClient = new HttpClient();
-        private CancellationTokenSource cancellationTokenSource;
+        private CancellationTokenSource cancellationTokenSource = null!;
         private bool isCompleted = false;
         private bool isStudio = false;
 
@@ -28,7 +27,7 @@ namespace SmilezStrap
             isStudio = launchStudio;
             cancellationTokenSource = new CancellationTokenSource();
             
-            SubtitleText.Text = isStudio ? "Launching Roblox Studio" : "Launching Roblox";
+            // Removed SubtitleText reference since it doesn't exist in XAML
             
             Loaded += async (s, e) => await StartLaunchProcess();
         }
@@ -128,8 +127,8 @@ namespace SmilezStrap
             if (needsUpdate)
             {
                 UpdateStatus("Downloading Roblox...", "This may take a few minutes");
-                string tempPath = Path.Combine(Path.GetTempPath(), "SmilezStrap", "RobloxPlayerInstaller.exe");
-                Directory.CreateDirectory(Path.GetDirectoryName(tempPath)!);
+                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "SmilezStrap", "RobloxPlayerInstaller.exe");
+                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(tempPath)!);
 
                 var downloadProgress = new Progress<int>(p =>
                 {
@@ -187,7 +186,7 @@ namespace SmilezStrap
             {
                 await Task.Delay(500, token);
                 
-                string exePath = Path.Combine(
+                string exePath = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions", installedVersion, "RobloxPlayerBeta.exe");
 
@@ -227,8 +226,8 @@ namespace SmilezStrap
             if (needsUpdate)
             {
                 UpdateStatus("Downloading Roblox Studio...", "This may take a few minutes");
-                string tempPath = Path.Combine(Path.GetTempPath(), "SmilezStrap", "RobloxStudioInstaller.exe");
-                Directory.CreateDirectory(Path.GetDirectoryName(tempPath)!);
+                string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "SmilezStrap", "RobloxStudioInstaller.exe");
+                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(tempPath)!);
 
                 var downloadProgress = new Progress<int>(p =>
                 {
@@ -293,7 +292,7 @@ namespace SmilezStrap
             {
                 await Task.Delay(500, token);
 
-                string exePath = Path.Combine(
+                string exePath = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions", installedVersion, "RobloxStudioBeta.exe");
 
@@ -327,7 +326,7 @@ namespace SmilezStrap
 
                 foreach (var shortcut in shortcuts)
                 {
-                    string shortcutPath = Path.Combine(desktopPath, shortcut);
+                    string shortcutPath = System.IO.Path.Combine(desktopPath, shortcut);
                     if (File.Exists(shortcutPath))
                     {
                         File.Delete(shortcutPath);
@@ -345,32 +344,32 @@ namespace SmilezStrap
         {
             var response = await httpClient.GetStringAsync("https://clientsettingscdn.roblox.com/v2/client-version/WindowsPlayer");
             var json = JsonDocument.Parse(response);
-            return json.RootElement.GetProperty("clientVersionUpload").GetString();
+            return json.RootElement.GetProperty("clientVersionUpload").GetString()!;
         }
 
         private async Task<string> GetLatestStudioVersion()
         {
             var response = await httpClient.GetStringAsync("https://clientsettingscdn.roblox.com/v2/client-version/WindowsStudio64");
             var json = JsonDocument.Parse(response);
-            return json.RootElement.GetProperty("clientVersionUpload").GetString();
+            return json.RootElement.GetProperty("clientVersionUpload").GetString()!;
         }
 
-        private string GetInstalledRobloxVersion()
+        private string? GetInstalledRobloxVersion()
         {
             try
             {
-                string versionsPath = Path.Combine(
+                string versionsPath = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions");
 
                 if (!Directory.Exists(versionsPath)) return null;
 
                 var versionDirs = Directory.GetDirectories(versionsPath)
-                    .Where(d => File.Exists(Path.Combine(d, "RobloxPlayerBeta.exe")))
+                    .Where(d => File.Exists(System.IO.Path.Combine(d, "RobloxPlayerBeta.exe")))
                     .OrderByDescending(d => Directory.GetCreationTime(d))
                     .ToList();
 
-                return versionDirs.Any() ? Path.GetFileName(versionDirs.First()) : null;
+                return versionDirs.Any() ? System.IO.Path.GetFileName(versionDirs.First()) : null;
             }
             catch
             {
@@ -378,22 +377,22 @@ namespace SmilezStrap
             }
         }
 
-        private string GetInstalledStudioVersion()
+        private string? GetInstalledStudioVersion()
         {
             try
             {
-                string versionsPath = Path.Combine(
+                string versionsPath = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions");
 
                 if (!Directory.Exists(versionsPath)) return null;
 
                 var studioDirs = Directory.GetDirectories(versionsPath)
-                    .Where(d => File.Exists(Path.Combine(d, "RobloxStudioBeta.exe")))
+                    .Where(d => File.Exists(System.IO.Path.Combine(d, "RobloxStudioBeta.exe")))
                     .OrderByDescending(d => Directory.GetLastWriteTime(d))
                     .ToList();
 
-                return studioDirs.Any() ? Path.GetFileName(studioDirs.First()) : null;
+                return studioDirs.Any() ? System.IO.Path.GetFileName(studioDirs.First()) : null;
             }
             catch
             {
