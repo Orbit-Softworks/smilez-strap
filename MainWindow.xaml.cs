@@ -15,6 +15,8 @@ namespace SmilezStrap
         private static readonly string VERSION = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
         private const string GITHUB_REPO = "Orbit-Softworks/smilez-strap";
         private readonly HttpClient httpClient = new HttpClient();
+        
+        // Make these nullable to fix CS8618
         private string? appDataPath;
         private Config? config;
 
@@ -94,7 +96,7 @@ namespace SmilezStrap
         private void InitializeApp()
         {
             appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SmilezStrap");
-            Directory.CreateDirectory(appDataPath);
+            Directory.CreateDirectory(appDataPath!);
             LoadConfig();
         }
 
@@ -128,20 +130,16 @@ namespace SmilezStrap
                 var releaseInfo = JsonDocument.Parse(response);
                 string? latestVersion = releaseInfo.RootElement.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "1.0.0";
                 
+                // Fix CS8601 warning
                 if (string.IsNullOrEmpty(latestVersion))
                     return true;
                 
                 // Parse versions safely
-                if (Version.TryParse(VERSION, out Version? currentVersion) && 
-                    Version.TryParse(latestVersion, out Version? latestVersionObj))
-                {
-                    if (latestVersionObj <= currentVersion)
-                        return true;
-                }
-                else
-                {
-                    return true; // If version parsing fails, continue anyway
-                }
+                Version currentVersion = new Version(VERSION);
+                Version latestVersionObj = new Version(latestVersion);
+                
+                if (latestVersionObj <= currentVersion)
+                    return true;
 
                 var result = MessageBox.Show(
                     $"SmilezStrap v{latestVersion} is available!\n\nCurrent version: v{VERSION}\n\nDownload and install automatically? (App will restart)",
@@ -177,6 +175,7 @@ namespace SmilezStrap
                     await responseStream.CopyToAsync(fileStream);
                 }
 
+                // Fix IL3000 warning
                 string currentExePath = Process.GetCurrentProcess().MainModule?.FileName ??
                                         System.AppContext.BaseDirectory + "SmilezStrap.exe";
 
