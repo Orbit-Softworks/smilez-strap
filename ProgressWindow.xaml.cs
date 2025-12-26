@@ -7,8 +7,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media.Animation;
+using System.Windows.Shapes;
 
 namespace SmilezStrap
 {
@@ -18,6 +18,7 @@ namespace SmilezStrap
         private CancellationTokenSource cancellationTokenSource;
         private bool isCompleted = false;
         private bool isStudio = false;
+
         private const string ROBLOX_DOWNLOAD_URL = "https://www.roblox.com/download/client?os=win";
         private const string STUDIO_DOWNLOAD_URL = "https://setup.rbxcdn.com/RobloxStudioInstaller.exe";
 
@@ -26,7 +27,9 @@ namespace SmilezStrap
             InitializeComponent();
             isStudio = launchStudio;
             cancellationTokenSource = new CancellationTokenSource();
+            
             SubtitleText.Text = isStudio ? "Launching Roblox Studio" : "Launching Roblox";
+            
             Loaded += async (s, e) => await StartLaunchProcess();
         }
 
@@ -44,13 +47,17 @@ namespace SmilezStrap
             Dispatcher.Invoke(() =>
             {
                 PercentText.Text = $"{percent}%";
-                var targetWidth = 450.0 * (percent / 100.0);
+                
+                // Progress bar container is 400px wide (450px window - 50px margins)
+                var targetWidth = 400.0 * (percent / 100.0);
+                
                 var animation = new DoubleAnimation
                 {
                     To = targetWidth,
                     Duration = TimeSpan.FromMilliseconds(300),
                     EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
                 };
+
                 ProgressBarFill.BeginAnimation(WidthProperty, animation);
             });
         }
@@ -62,6 +69,7 @@ namespace SmilezStrap
                 isCompleted = true;
                 CancelButton.Visibility = Visibility.Collapsed;
                 CloseButton.Visibility = Visibility.Visible;
+
                 if (success)
                 {
                     StatusText.Text = isStudio ? "Studio launched successfully!" : "Roblox launched successfully!";
@@ -102,31 +110,41 @@ namespace SmilezStrap
         private async Task LaunchRoblox()
         {
             var token = cancellationTokenSource.Token;
+
             UpdateStatus("Checking for updates...");
             SetProgress(5);
             await Task.Delay(500, token);
             token.ThrowIfCancellationRequested();
+
             UpdateStatus("Checking Roblox version...");
             SetProgress(10);
             token.ThrowIfCancellationRequested();
+
             string installedVersion = GetInstalledRobloxVersion();
             string latestVersion = await GetLatestRobloxVersion();
+
             bool needsUpdate = installedVersion == null || installedVersion != latestVersion;
+
             if (needsUpdate)
             {
                 UpdateStatus("Downloading Roblox...", "This may take a few minutes");
                 string tempPath = Path.Combine(Path.GetTempPath(), "SmilezStrap", "RobloxPlayerInstaller.exe");
                 Directory.CreateDirectory(Path.GetDirectoryName(tempPath)!);
+
                 var downloadProgress = new Progress<int>(p =>
                 {
                     UpdateStatus($"Downloading Roblox... {p}%");
                     SetProgress(10 + (p * 40 / 100));
                 });
+
                 await DownloadFile(ROBLOX_DOWNLOAD_URL, tempPath, downloadProgress, token);
                 token.ThrowIfCancellationRequested();
+
                 UpdateStatus("Installing Roblox...", "Please wait while Roblox is being installed");
                 SetProgress(55);
+
                 var installTask = RunInstallerSilently(tempPath);
+
                 int simProgress = 55;
                 while (!installTask.IsCompleted && simProgress < 90)
                 {
@@ -135,20 +153,30 @@ namespace SmilezStrap
                     simProgress += 2;
                     SetProgress(simProgress);
                 }
+
                 await installTask;
                 token.ThrowIfCancellationRequested();
+                
                 SetProgress(90);
                 await Task.Delay(2000, token);
+
                 try { File.Delete(tempPath); } catch { }
+
                 installedVersion = GetInstalledRobloxVersion();
                 if (installedVersion == null)
                     throw new Exception("Installation failed to register.");
             }
+
             token.ThrowIfCancellationRequested();
             UpdateStatus("Launching Roblox...");
             SetProgress(95);
+
             if (needsUpdate)
             {
+                // Wait longer for installer to finish creating shortcuts
+                await Task.Delay(3000, token);
+                RemoveDesktopShortcuts();
+                // Check again after a delay in case shortcuts were created late
                 await Task.Delay(2000, token);
                 RemoveDesktopShortcuts();
                 ShowCompletion(true);
@@ -158,15 +186,20 @@ namespace SmilezStrap
             else
             {
                 await Task.Delay(500, token);
+                
                 string exePath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "Roblox", "Versions", installedVersion!, "RobloxPlayerBeta.exe");
+                    "Roblox", "Versions", installedVersion, "RobloxPlayerBeta.exe");
+
                 if (!File.Exists(exePath))
                     throw new Exception("Roblox executable not found.");
+
                 Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = true });
                 SetProgress(100);
+
                 await Task.Delay(1000, token);
                 RemoveDesktopShortcuts();
+
                 ShowCompletion(true);
                 await Task.Delay(2000);
                 this.Close();
@@ -176,31 +209,41 @@ namespace SmilezStrap
         private async Task LaunchStudio()
         {
             var token = cancellationTokenSource.Token;
+
             UpdateStatus("Checking for updates...");
             SetProgress(5);
             await Task.Delay(500, token);
             token.ThrowIfCancellationRequested();
+
             UpdateStatus("Checking Studio version...");
             SetProgress(10);
             token.ThrowIfCancellationRequested();
+
             string installedVersion = GetInstalledStudioVersion();
             string latestVersion = await GetLatestStudioVersion();
+
             bool needsUpdate = installedVersion == null || installedVersion != latestVersion;
+
             if (needsUpdate)
             {
                 UpdateStatus("Downloading Roblox Studio...", "This may take a few minutes");
                 string tempPath = Path.Combine(Path.GetTempPath(), "SmilezStrap", "RobloxStudioInstaller.exe");
                 Directory.CreateDirectory(Path.GetDirectoryName(tempPath)!);
+
                 var downloadProgress = new Progress<int>(p =>
                 {
                     UpdateStatus($"Downloading Studio... {p}%");
                     SetProgress(10 + (p * 40 / 100));
                 });
+
                 await DownloadFile(STUDIO_DOWNLOAD_URL, tempPath, downloadProgress, token);
                 token.ThrowIfCancellationRequested();
+
                 UpdateStatus("Installing Roblox Studio...", "Please wait while Studio is being installed");
                 SetProgress(55);
+
                 var installTask = RunInstallerSilently(tempPath);
+
                 int simProgress = 55;
                 while (!installTask.IsCompleted && simProgress < 90)
                 {
@@ -209,11 +252,15 @@ namespace SmilezStrap
                     simProgress += 2;
                     SetProgress(simProgress);
                 }
+
                 await installTask;
                 token.ThrowIfCancellationRequested();
+                
                 SetProgress(90);
                 await Task.Delay(2000, token);
+
                 try { File.Delete(tempPath); } catch { }
+
                 for (int i = 0; i < 5; i++)
                 {
                     token.ThrowIfCancellationRequested();
@@ -221,14 +268,21 @@ namespace SmilezStrap
                     if (installedVersion != null) break;
                     await Task.Delay(1000, token);
                 }
+
                 if (installedVersion == null)
                     throw new Exception("Studio installation completed but version not detected.");
             }
+
             token.ThrowIfCancellationRequested();
             UpdateStatus("Launching Roblox Studio...");
             SetProgress(95);
+
             if (needsUpdate)
             {
+                // Wait longer for installer to finish creating shortcuts
+                await Task.Delay(3000, token);
+                RemoveDesktopShortcuts();
+                // Check again after a delay in case shortcuts were created late
                 await Task.Delay(2000, token);
                 RemoveDesktopShortcuts();
                 ShowCompletion(true);
@@ -238,15 +292,20 @@ namespace SmilezStrap
             else
             {
                 await Task.Delay(500, token);
+
                 string exePath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "Roblox", "Versions", installedVersion!, "RobloxStudioBeta.exe");
+                    "Roblox", "Versions", installedVersion, "RobloxStudioBeta.exe");
+
                 if (!File.Exists(exePath))
                     throw new Exception("Studio executable not found.");
+
                 Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = true });
                 SetProgress(100);
+
                 await Task.Delay(1000, token);
                 RemoveDesktopShortcuts();
+
                 ShowCompletion(true);
                 await Task.Delay(2000);
                 this.Close();
@@ -258,15 +317,22 @@ namespace SmilezStrap
             try
             {
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string playerShortcut = Path.Combine(desktopPath, "Roblox Player.lnk");
-                if (File.Exists(playerShortcut))
+                
+                // List of possible shortcut names
+                string[] shortcuts = new string[]
                 {
-                    File.Delete(playerShortcut);
-                }
-                string studioShortcut = Path.Combine(desktopPath, "Roblox Studio.lnk");
-                if (File.Exists(studioShortcut))
+                    "Roblox Player.lnk",
+                    "Roblox Studio.lnk"
+                };
+
+                foreach (var shortcut in shortcuts)
                 {
-                    File.Delete(studioShortcut);
+                    string shortcutPath = Path.Combine(desktopPath, shortcut);
+                    if (File.Exists(shortcutPath))
+                    {
+                        File.Delete(shortcutPath);
+                        Console.WriteLine($"Removed shortcut: {shortcut}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -279,28 +345,31 @@ namespace SmilezStrap
         {
             var response = await httpClient.GetStringAsync("https://clientsettingscdn.roblox.com/v2/client-version/WindowsPlayer");
             var json = JsonDocument.Parse(response);
-            return json.RootElement.GetProperty("clientVersionUpload").GetString()!;
+            return json.RootElement.GetProperty("clientVersionUpload").GetString();
         }
 
         private async Task<string> GetLatestStudioVersion()
         {
             var response = await httpClient.GetStringAsync("https://clientsettingscdn.roblox.com/v2/client-version/WindowsStudio64");
             var json = JsonDocument.Parse(response);
-            return json.RootElement.GetProperty("clientVersionUpload").GetString()!;
+            return json.RootElement.GetProperty("clientVersionUpload").GetString();
         }
 
-        private string? GetInstalledRobloxVersion()
+        private string GetInstalledRobloxVersion()
         {
             try
             {
                 string versionsPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions");
+
                 if (!Directory.Exists(versionsPath)) return null;
+
                 var versionDirs = Directory.GetDirectories(versionsPath)
                     .Where(d => File.Exists(Path.Combine(d, "RobloxPlayerBeta.exe")))
                     .OrderByDescending(d => Directory.GetCreationTime(d))
                     .ToList();
+
                 return versionDirs.Any() ? Path.GetFileName(versionDirs.First()) : null;
             }
             catch
@@ -309,18 +378,21 @@ namespace SmilezStrap
             }
         }
 
-        private string? GetInstalledStudioVersion()
+        private string GetInstalledStudioVersion()
         {
             try
             {
                 string versionsPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Roblox", "Versions");
+
                 if (!Directory.Exists(versionsPath)) return null;
+
                 var studioDirs = Directory.GetDirectories(versionsPath)
                     .Where(d => File.Exists(Path.Combine(d, "RobloxStudioBeta.exe")))
                     .OrderByDescending(d => Directory.GetLastWriteTime(d))
                     .ToList();
+
                 return studioDirs.Any() ? Path.GetFileName(studioDirs.First()) : null;
             }
             catch
@@ -329,22 +401,25 @@ namespace SmilezStrap
             }
         }
 
-        private async Task DownloadFile(string url, string destination, IProgress<int>? progress, CancellationToken token)
+        private async Task DownloadFile(string url, string destination, IProgress<int> progress, CancellationToken token)
         {
             using (var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token))
             {
                 response.EnsureSuccessStatusCode();
                 var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                using (var contentStream = await response.Content.ReadAsStreamAsync(token))
+
+                using (var contentStream = await response.Content.ReadAsStreamAsync())
                 using (var fileStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
                 {
                     var buffer = new byte[8192];
                     long totalRead = 0L;
                     int bytesRead;
+
                     while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, token)) != 0)
                     {
                         await fileStream.WriteAsync(buffer, 0, bytesRead, token);
                         totalRead += bytesRead;
+
                         if (totalBytes > 0)
                         {
                             var percent = (int)((totalRead * 100L) / totalBytes);
@@ -366,6 +441,7 @@ namespace SmilezStrap
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden
                 };
+
                 using (var process = Process.Start(processStartInfo))
                 {
                     if (process != null)
@@ -395,15 +471,6 @@ namespace SmilezStrap
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
-        }
-
-        // Drag handler for the header/title bar only
-        private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed)
-            {
-                this.DragMove();
-            }
         }
     }
 }
