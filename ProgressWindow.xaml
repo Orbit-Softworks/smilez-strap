@@ -7,10 +7,10 @@
 
     <Border Background="Transparent" Padding="10">
         <Border.Effect>
-            <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="0" Opacity="0.6"/>
+            <DropShadowEffect Color="#8B0000" BlurRadius="20" ShadowDepth="0" Opacity="0.6"/>
         </Border.Effect>
 
-        <Border Background="#1E1E1E" CornerRadius="8" BorderThickness="1" BorderBrush="#2A2A2A">
+        <Border Background="#0A0A0A" CornerRadius="8" BorderThickness="1" BorderBrush="#8B0000">
             <Grid Margin="25,20,25,20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -21,7 +21,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Title -->
-                <TextBlock Grid.Row="0" Text="SmilezStrap" Foreground="White" FontSize="16" 
+                <TextBlock Grid.Row="0" Text="SmilezStrap" Foreground="#FF4444" FontSize="16" 
                          FontWeight="SemiBold" Margin="0,0,0,15"/>
 
                 <!-- Status Text -->
@@ -31,7 +31,7 @@
                 <!-- Progress Bar -->
                 <Grid Grid.Row="2" Margin="0,0,0,10">
                     <Border Background="#252525" Height="6" CornerRadius="3">
-                        <Border Background="#0078D4" x:Name="ProgressBarFill" Height="6" CornerRadius="3" 
+                        <Border Background="#8B0000" x:Name="ProgressBarFill" Height="6" CornerRadius="3" 
                               HorizontalAlignment="Left" Width="0"/>
                     </Border>
                 </Grid>
@@ -62,7 +62,7 @@
                                 </Setter>
                                 <Style.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#353535"/>
+                                        <Setter Property="Background" Value="#3A3A3A"/>
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>
@@ -70,7 +70,7 @@
                     </Button>
 
                     <Button x:Name="CloseButton" Content="Close" Width="75" Height="28" 
-                          Background="#0078D4" Foreground="White" BorderThickness="0"
+                          Background="#8B0000" Foreground="White" BorderThickness="0"
                           FontSize="12" FontWeight="Medium" Cursor="Hand" 
                           Click="CloseButton_Click" Visibility="Collapsed">
                         <Button.Style>
@@ -86,7 +86,7 @@
                                 </Setter>
                                 <Style.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#1084D8"/>
+                                        <Setter Property="Background" Value="#A00000"/>
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>
