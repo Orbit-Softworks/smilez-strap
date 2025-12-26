@@ -12,11 +12,11 @@ namespace SmilezStrap
 {
     public partial class MainWindow : Window
     {
-        private static readonly string VERSION = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
+        private static readonly string VERSION = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
         private const string GITHUB_REPO = "Orbit-Softworks/smilez-strap";
         private readonly HttpClient httpClient = new HttpClient();
-        private string appDataPath;
-        private Config config;
+        private string appDataPath = null!;
+        private Config config = null!;
 
         public MainWindow()
         {
@@ -104,7 +104,7 @@ namespace SmilezStrap
             if (File.Exists(configPath))
             {
                 string json = File.ReadAllText(configPath);
-                config = JsonSerializer.Deserialize<Config>(json);
+                config = JsonSerializer.Deserialize<Config>(json) ?? new Config();
             }
             else
             {
@@ -126,8 +126,13 @@ namespace SmilezStrap
             {
                 var response = await httpClient.GetStringAsync($"https://api.github.com/repos/{GITHUB_REPO}/releases/latest");
                 var releaseInfo = JsonDocument.Parse(response);
-                string latestVersion = releaseInfo.RootElement.GetProperty("tag_name").GetString().TrimStart('v');
-                if (new Version(latestVersion) <= new Version(VERSION))
+                string latestVersion = releaseInfo.RootElement.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "1.0.0";
+                
+                // Parse versions safely
+                Version currentVersion = new Version(VERSION);
+                Version latestVersionObj = new Version(latestVersion);
+                
+                if (latestVersionObj <= currentVersion)
                     return true;
 
                 var result = MessageBox.Show(
@@ -139,19 +144,19 @@ namespace SmilezStrap
                 if (result != MessageBoxResult.Yes)
                     return false;
 
-                string downloadUrl = null;
+                string? downloadUrl = null;
                 var assets = releaseInfo.RootElement.GetProperty("assets").EnumerateArray();
                 foreach (var asset in assets)
                 {
-                    string name = asset.GetProperty("name").GetString();
-                    if (name.Equals("SmilezStrap.exe", StringComparison.OrdinalIgnoreCase))
+                    string? name = asset.GetProperty("name").GetString();
+                    if (name != null && name.Equals("SmilezStrap.exe", StringComparison.OrdinalIgnoreCase))
                     {
                         downloadUrl = asset.GetProperty("browser_download_url").GetString();
                         break;
                     }
                 }
 
-                if (downloadUrl == null)
+                if (string.IsNullOrEmpty(downloadUrl))
                 {
                     MessageBox.Show("Update found, but no SmilezStrap.exe in release assets.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
@@ -164,7 +169,9 @@ namespace SmilezStrap
                     await responseStream.CopyToAsync(fileStream);
                 }
 
-                string currentExePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                string currentExePath = System.Reflection.Assembly.GetExecutingAssembly().Location ?? 
+                                        Process.GetCurrentProcess().MainModule?.FileName ??
+                                        throw new InvalidOperationException("Cannot determine executable path");
 
                 string batchPath = Path.Combine(Path.GetTempPath(), "update_smilezstrap.bat");
                 string batchContent = $@"
