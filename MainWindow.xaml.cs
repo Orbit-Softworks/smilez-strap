@@ -4,9 +4,9 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;  // ADD THIS LINE - This is what's missing!
+using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;     // ADD THIS LINE - For System.Windows.Media.Brushes
+using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -31,6 +31,17 @@ namespace SmilezStrap
             
             // Set initial view
             HomeButton_Click(null, null);
+            
+            // Auto-check for updates on startup
+            CheckForUpdatesOnStartup();
+        }
+
+        private async void CheckForUpdatesOnStartup()
+        {
+            if (config?.AutoCheckUpdates ?? true)
+            {
+                await CheckForAppUpdate(false); // false = don't show "no update" message
+            }
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -64,7 +75,7 @@ namespace SmilezStrap
 
         private void UpdateMenuButtonState(Button activeButton, Button inactiveButton)
         {
-            // Simplify this method - it has some redundant code
+            // Simplify this method
             activeButton.Background = Brushes.Transparent;
             activeButton.Foreground = Brushes.White;
             
@@ -100,17 +111,8 @@ namespace SmilezStrap
 
         private async void LaunchRoblox_Click(object sender, RoutedEventArgs e)
         {
-            bool canContinue = await CheckForAppUpdate();
-            if (!canContinue) return;
-
-            bool bootstrapOk = await CheckForBootstrapperUpdate();
-            if (!bootstrapOk) return;
-
-            // Apply FPS limit before launching if enabled
-            if (config?.AutoApplyFpsLimit ?? true)
-            {
-                ApplyFpsLimit();
-            }
+            // Apply FPS limit before launching (always apply)
+            ApplyFpsLimit();
 
             this.Hide();
 
@@ -120,17 +122,8 @@ namespace SmilezStrap
 
         private async void LaunchStudio_Click(object sender, RoutedEventArgs e)
         {
-            bool canContinue = await CheckForAppUpdate();
-            if (!canContinue) return;
-
-            bool bootstrapOk = await CheckForBootstrapperUpdate();
-            if (!bootstrapOk) return;
-
-            // Apply FPS limit before launching if enabled
-            if (config?.AutoApplyFpsLimit ?? true)
-            {
-                ApplyFpsLimit();
-            }
+            // Apply FPS limit before launching (always apply)
+            ApplyFpsLimit();
 
             this.Hide();
 
@@ -148,10 +141,19 @@ namespace SmilezStrap
                     SaveConfig();
                     
                     // Apply the FPS limit immediately
-                    ApplyFpsLimit();
+                    bool applied = ApplyFpsLimit();
                     
-                    MessageBox.Show($"FPS limit set to {fpsLimit}. This will be applied to Roblox.", 
-                                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (applied)
+                    {
+                        MessageBox.Show($"FPS limit set to {fpsLimit}. This will be applied to Roblox.", 
+                                        "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show($"FPS limit set to {fpsLimit}, but could not apply settings automatically.\n" +
+                                      "You may need to manually set FPS limit in Roblox settings.", 
+                                      "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                 }
             }
             else
@@ -162,123 +164,159 @@ namespace SmilezStrap
             }
         }
 
-        private void ApplyFpsLimit()
+        private bool ApplyFpsLimit()
         {
             if (config?.FpsLimit > 0)
             {
                 try
                 {
-                    string robloxSettingsPath = GetRobloxSettingsPath();
-                    if (!string.IsNullOrEmpty(robloxSettingsPath) && File.Exists(robloxSettingsPath))
+                    // Method 1: Try new ClientSettings location (Roblox 2023+)
+                    bool success = SetFpsLimitNewMethod(config.FpsLimit);
+                    
+                    if (!success)
                     {
-                        SetFpsLimitInSettings(robloxSettingsPath, config.FpsLimit);
-                        Console.WriteLine($"Applied FPS limit {config.FpsLimit} to {robloxSettingsPath}");
+                        // Method 2: Try old GlobalSettings location (fallback)
+                        success = SetFpsLimitOldMethod(config.FpsLimit);
+                    }
+                    
+                    if (success)
+                    {
+                        Console.WriteLine($"Applied FPS limit {config.FpsLimit}");
+                        return true;
                     }
                     else
                     {
-                        // Create new settings file if it doesn't exist
-                        CreateRobloxSettingsWithFpsLimit(config.FpsLimit);
-                        Console.WriteLine($"Created new Roblox settings with FPS limit {config.FpsLimit}");
+                        Console.WriteLine("Failed to apply FPS limit - could not find Roblox settings");
+                        return false;
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Failed to apply FPS limit: {ex.Message}");
+                    return false;
                 }
             }
+            return false;
         }
 
-        private string? GetRobloxSettingsPath()
+        private bool SetFpsLimitNewMethod(int fpsLimit)
+        {
+            try
+            {
+                // New location: %LOCALAPPDATA%\Roblox\Versions\[version]\ClientSettings
+                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string robloxVersions = Path.Combine(localAppData, "Roblox", "Versions");
+                
+                if (Directory.Exists(robloxVersions))
+                {
+                    var versionDirs = Directory.GetDirectories(robloxVersions);
+                    foreach (var versionDir in versionDirs)
+                    {
+                        string clientSettingsDir = Path.Combine(versionDir, "ClientSettings");
+                        Directory.CreateDirectory(clientSettingsDir);
+                        
+                        string clientSettingsPath = Path.Combine(clientSettingsDir, "ClientAppSettings.json");
+                        
+                        // Create or update ClientAppSettings.json
+                        string jsonContent = $@"{{
+    ""DFIntTaskSchedulerTargetFps"": {fpsLimit}
+}}";
+                        
+                        File.WriteAllText(clientSettingsPath, jsonContent);
+                        Console.WriteLine($"Set FPS limit to {fpsLimit} in {clientSettingsPath}");
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error with new method: {ex.Message}");
+            }
+            return false;
+        }
+
+        private bool SetFpsLimitOldMethod(int fpsLimit)
         {
             try
             {
                 string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 string robloxPath = Path.Combine(localAppData, "Roblox");
                 
-                if (Directory.Exists(robloxPath))
-                {
-                    var files = Directory.GetFiles(robloxPath, "GlobalSettings_*.xml");
-                    if (files.Length > 0)
-                    {
-                        return files[0]; // Return the first settings file
-                    }
-                }
-            }
-            catch { }
-            
-            return null;
-        }
-
-        private void SetFpsLimitInSettings(string settingsPath, int fpsLimit)
-        {
-            try
-            {
-                string content = File.ReadAllText(settingsPath);
+                if (!Directory.Exists(robloxPath))
+                    return false;
                 
-                // Check if FramerateManager exists
-                if (content.Contains("<FramerateManager>"))
+                // Try to find existing settings file
+                var files = Directory.GetFiles(robloxPath, "GlobalSettings_*.xml");
+                string settingsPath;
+                
+                if (files.Length > 0)
                 {
-                    // Update existing FPS limit
-                    string pattern = @"<FramerateLimit>\d+</FramerateLimit>";
-                    string replacement = $"<FramerateLimit>{fpsLimit}</FramerateLimit>";
+                    settingsPath = files[0];
+                }
+                else
+                {
+                    // Create new file
+                    settingsPath = Path.Combine(robloxPath, "GlobalSettings_SmilezStrap.xml");
+                }
+                
+                string content;
+                if (File.Exists(settingsPath))
+                {
+                    content = File.ReadAllText(settingsPath);
                     
-                    if (Regex.IsMatch(content, pattern))
+                    // Check if FramerateManager exists
+                    if (content.Contains("<FramerateManager>"))
                     {
-                        content = Regex.Replace(content, pattern, replacement);
+                        // Update existing FPS limit
+                        string pattern = @"<FramerateLimit>\d+</FramerateLimit>";
+                        string replacement = $"<FramerateLimit>{fpsLimit}</FramerateLimit>";
+                        
+                        if (Regex.IsMatch(content, pattern))
+                        {
+                            content = Regex.Replace(content, pattern, replacement);
+                        }
+                        else
+                        {
+                            // Insert FPS limit into FramerateManager
+                            content = content.Replace("</FramerateManager>", 
+                                $"<FramerateLimit>{fpsLimit}</FramerateLimit></FramerateManager>");
+                        }
                     }
                     else
                     {
-                        // Insert FPS limit into FramerateManager
-                        content = content.Replace("</FramerateManager>", 
-                            $"<FramerateLimit>{fpsLimit}</FramerateLimit></FramerateManager>");
+                        // Create new FramerateManager section
+                        string framerateSection = $"\n  <FramerateManager>\n    <FramerateLimit>{fpsLimit}</FramerateLimit>\n  </FramerateManager>";
+                        
+                        // Insert before closing GlobalSettings tag
+                        if (content.Contains("</GlobalSettings>"))
+                        {
+                            content = content.Replace("</GlobalSettings>", $"{framerateSection}\n</GlobalSettings>");
+                        }
+                        else
+                        {
+                            content += framerateSection;
+                        }
                     }
                 }
                 else
                 {
-                    // Create new FramerateManager section
-                    string framerateSection = $"\n  <FramerateManager>\n    <FramerateLimit>{fpsLimit}</FramerateLimit>\n  </FramerateManager>";
-                    
-                    // Insert before closing GlobalSettings tag
-                    if (content.Contains("</GlobalSettings>"))
-                    {
-                        content = content.Replace("</GlobalSettings>", $"{framerateSection}\n</GlobalSettings>");
-                    }
-                    else
-                    {
-                        content += framerateSection;
-                    }
-                }
-                
-                File.WriteAllText(settingsPath, content);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error setting FPS limit: {ex.Message}");
-            }
-        }
-
-        private void CreateRobloxSettingsWithFpsLimit(int fpsLimit)
-        {
-            try
-            {
-                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                string robloxPath = Path.Combine(localAppData, "Roblox");
-                Directory.CreateDirectory(robloxPath);
-                
-                string settingsPath = Path.Combine(robloxPath, "GlobalSettings_SmilezStrap.xml");
-                
-                string content = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+                    // Create new file
+                    content = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <GlobalSettings>
   <FramerateManager>
     <FramerateLimit>{fpsLimit}</FramerateLimit>
   </FramerateManager>
 </GlobalSettings>";
+                }
                 
                 File.WriteAllText(settingsPath, content);
+                Console.WriteLine($"Set FPS limit to {fpsLimit} in {settingsPath}");
+                return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error creating Roblox settings: {ex.Message}");
+                Console.WriteLine($"Error with old method: {ex.Message}");
+                return false;
             }
         }
 
@@ -306,9 +344,6 @@ namespace SmilezStrap
             if (config != null)
             {
                 FpsLimitTextBox.Text = config.FpsLimit.ToString();
-                AutoRemoveCheckBox.IsChecked = config.AutoRemoveShortcuts;
-                AutoUpdateCheckBox.IsChecked = config.AutoCheckUpdates;
-                AutoFpsCheckBox.IsChecked = config.AutoApplyFpsLimit;
             }
         }
 
@@ -320,9 +355,6 @@ namespace SmilezStrap
                 {
                     config.FpsLimit = fpsLimit;
                 }
-                config.AutoRemoveShortcuts = AutoRemoveCheckBox.IsChecked ?? true;
-                config.AutoCheckUpdates = AutoUpdateCheckBox.IsChecked ?? true;
-                config.AutoApplyFpsLimit = AutoFpsCheckBox.IsChecked ?? true;
                 SaveConfig();
             }
         }
@@ -363,37 +395,56 @@ namespace SmilezStrap
             }
         }
 
-        private async Task<bool> CheckForAppUpdate()
+        private async Task<bool> CheckForAppUpdate(bool showNoUpdateMessage = true)
         {
-            if (!(config?.AutoCheckUpdates ?? true))
-                return true;
-
             try
             {
+                // Always check for updates when called
                 var response = await httpClient.GetStringAsync($"https://api.github.com/repos/{GITHUB_REPO}/releases/latest");
                 var releaseInfo = JsonDocument.Parse(response);
                 string? latestVersion = releaseInfo.RootElement.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "1.0.0";
                 
                 if (string.IsNullOrEmpty(latestVersion))
+                {
+                    if (showNoUpdateMessage)
+                    {
+                        MessageBox.Show("Could not check for updates. Please try again later.",
+                                        "Update Check", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                     return true;
+                }
                 
                 if (Version.TryParse(VERSION, out Version? currentVersion) && 
                     Version.TryParse(latestVersion, out Version? latestVersionObj))
                 {
                     if (latestVersionObj <= currentVersion)
+                    {
+                        if (showNoUpdateMessage)
+                        {
+                            MessageBox.Show($"You are using the latest version (v{VERSION}).",
+                                            "Up to Date", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
                         return true;
+                    }
                 }
                 else
                 {
+                    if (showNoUpdateMessage)
+                    {
+                        MessageBox.Show("Could not check for updates. Please try again later.",
+                                        "Update Check", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                     return true;
                 }
 
+                // Update available - ask user if they want to update
                 var result = MessageBox.Show(
                     $"SmilezStrap v{latestVersion} is available!\n\nCurrent version: v{VERSION}\n\nDownload and install automatically? (App will restart)",
                     "Update Available",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Information
                 );
+                
                 if (result != MessageBoxResult.Yes)
                     return true;
 
@@ -402,7 +453,8 @@ namespace SmilezStrap
                 foreach (var asset in assets)
                 {
                     string? name = asset.GetProperty("name").GetString();
-                    if (name != null && name.Equals("SmilezStrap.exe", StringComparison.OrdinalIgnoreCase))
+                    if (name != null && name.EndsWith("SmilezStrap-Setup.exe", StringComparison.OrdinalIgnoreCase) ||
+                        name != null && name.Equals("SmilezStrap.exe", StringComparison.OrdinalIgnoreCase))
                     {
                         downloadUrl = asset.GetProperty("browser_download_url").GetString();
                         break;
@@ -411,11 +463,13 @@ namespace SmilezStrap
 
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
-                    MessageBox.Show("Update found, but no SmilezStrap.exe in release assets.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Update found, but no installer found in release assets.", 
+                                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return true;
                 }
 
-                string tempExePath = Path.Combine(Path.GetTempPath(), "SmilezStrap_new.exe");
+                // Download the update
+                string tempExePath = Path.Combine(Path.GetTempPath(), "SmilezStrap_Update.exe");
                 using (var responseStream = await httpClient.GetStreamAsync(downloadUrl))
                 using (var fileStream = new FileStream(tempExePath, FileMode.Create))
                 {
@@ -425,6 +479,7 @@ namespace SmilezStrap
                 string currentExePath = Process.GetCurrentProcess().MainModule?.FileName ??
                                         System.AppContext.BaseDirectory + "SmilezStrap.exe";
 
+                // Create update batch script
                 string batchPath = Path.Combine(Path.GetTempPath(), "update_smilezstrap.bat");
                 string batchContent = $@"
 @echo off
@@ -433,9 +488,11 @@ del /f /q ""{currentExePath}""
 copy /y ""{tempExePath}"" ""{currentExePath}""
 start """" ""{currentExePath}""
 del /f /q ""{batchPath}""
+del /f /q ""{tempExePath}""
 ";
                 File.WriteAllText(batchPath, batchContent);
 
+                // Run the update script
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = batchPath,
@@ -443,13 +500,43 @@ del /f /q ""{batchPath}""
                     CreateNoWindow = true
                 });
 
+                // Close the current application
                 Application.Current.Shutdown();
                 return false;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error checking for updates: {ex.Message}");
+                
+                if (showNoUpdateMessage)
+                {
+                    MessageBox.Show($"Failed to check for updates: {ex.Message}\n\nPlease check your internet connection.",
+                                    "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
                 return true;
+            }
+        }
+
+        // New method for Check Updates button
+        private async void CheckUpdatesButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Show checking message
+            var checkButton = sender as Button;
+            if (checkButton != null)
+            {
+                string originalText = checkButton.Content.ToString();
+                checkButton.Content = "Checking...";
+                checkButton.IsEnabled = false;
+                
+                try
+                {
+                    await CheckForAppUpdate(true);
+                }
+                finally
+                {
+                    checkButton.Content = originalText;
+                    checkButton.IsEnabled = true;
+                }
             }
         }
 
@@ -470,8 +557,6 @@ del /f /q ""{batchPath}""
         public string RobloxVersion { get; set; } = string.Empty;
         public string StudioVersion { get; set; } = string.Empty;
         public int FpsLimit { get; set; } = 60;
-        public bool AutoRemoveShortcuts { get; set; } = true;
         public bool AutoCheckUpdates { get; set; } = true;
-        public bool AutoApplyFpsLimit { get; set; } = true;
     }
 }
