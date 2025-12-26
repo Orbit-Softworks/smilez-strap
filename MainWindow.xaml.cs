@@ -4,7 +4,9 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;  // ADD THIS LINE - This is what's missing!
 using System.Windows.Input;
+using System.Windows.Media;     // ADD THIS LINE - For System.Windows.Media.Brushes
 using System.Windows.Navigation;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -62,27 +64,32 @@ namespace SmilezStrap
 
         private void UpdateMenuButtonState(Button activeButton, Button inactiveButton)
         {
-            activeButton.Background = System.Windows.Media.Brushes.Transparent;
-            activeButton.Foreground = System.Windows.Media.Brushes.White;
-            activeButton.Background = System.Windows.Media.Brushes.Transparent;
+            // Simplify this method - it has some redundant code
+            activeButton.Background = Brushes.Transparent;
+            activeButton.Foreground = Brushes.White;
             
-            inactiveButton.Background = System.Windows.Media.Brushes.Transparent;
-            inactiveButton.Foreground = System.Windows.Media.Brushes.White;
-            inactiveButton.Background = System.Windows.Media.Brushes.Transparent;
+            inactiveButton.Background = Brushes.Transparent;
+            inactiveButton.Foreground = Brushes.White;
             
-            activeButton.Background = (System.Windows.Media.Brush)FindResource("ButtonBackground");
-            activeButton.Foreground = System.Windows.Media.Brushes.White;
+            // FindResource might not exist, let's use a simpler approach
+            try
+            {
+                // Try to get the button background from resources
+                if (this.Resources["ButtonBackground"] is Brush buttonBackground)
+                {
+                    activeButton.Background = buttonBackground;
+                }
+                else
+                {
+                    activeButton.Background = Brushes.Transparent;
+                }
+            }
+            catch
+            {
+                activeButton.Background = Brushes.Transparent;
+            }
             
-            // Force update background for active button
-            var style = new Style(typeof(Button));
-            style.Setters.Add(new Setter(Button.BackgroundProperty, System.Windows.Media.Brushes.Transparent));
-            activeButton.Style = style;
-            
-            var style2 = new Style(typeof(Button));
-            style2.Setters.Add(new Setter(Button.BackgroundProperty, System.Windows.Media.Brushes.Transparent));
-            inactiveButton.Style = style2;
-            
-            activeButton.Background = System.Windows.Media.Brushes.Transparent;
+            activeButton.Foreground = Brushes.White;
         }
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
