@@ -293,12 +293,16 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         
-                                        <TextBox x:Name="FpsLimitTextBox" Grid.Column="0" 
-                                                 Height="35" Background="#2A2A2A" 
-                                                 Foreground="White" BorderThickness="1" 
-                                                 BorderBrush="#444444" CornerRadius="4"
-                                                 FontSize="14" Padding="10,0"
-                                                 Text="60" VerticalContentAlignment="Center"/>
+                                        <!-- FIXED: TextBox wrapped in Border for rounded corners -->
+                                        <Border Grid.Column="0" Background="#2A2A2A" CornerRadius="4" 
+                                                BorderThickness="1" BorderBrush="#444444">
+                                            <TextBox x:Name="FpsLimitTextBox" 
+                                                     Height="35" Background="Transparent" 
+                                                     Foreground="White" 
+                                                     BorderThickness="0"
+                                                     FontSize="14" Padding="10,0"
+                                                     Text="60" VerticalContentAlignment="Center"/>
+                                        </Border>
                                         
                                         <Button x:Name="SetFpsButton" Grid.Column="1" 
                                                 Content="Apply" Width="80" Height="35" 
