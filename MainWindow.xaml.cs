@@ -160,8 +160,10 @@ namespace SmilezStrap
                     
                     if (applied)
                     {
-                        MessageBox.Show($"FPS limit set to {fpsLimit}. This will be applied to Roblox.", 
-                                        "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"FPS limit set to {fpsLimit} successfully!\n\n" +
+                                      "The FPS limiter is now active and will work the next time you launch Roblox.\n\n" +
+                                      "Note: The in-game FPS setting will now be disabled automatically.", 
+                                        "FPS Limit Applied", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
@@ -253,8 +255,13 @@ namespace SmilezStrap
                             catch { }
                         }
                         
-                        // Update or add FPS settings - using multiple flags that work
+                        // Update or add FPS settings - THIS IS THE WORKING COMBINATION!
                         settingsDict["DFIntTaskSchedulerTargetFps"] = JsonDocument.Parse(fpsLimit.ToString()).RootElement;
+                        
+                        // CRITICAL: This flag disables the in-game FPS setting override!
+                        settingsDict["FFlagGameBasicSettingsFramerateCap5"] = JsonDocument.Parse("false").RootElement;
+                        
+                        // Disable all FPS caps
                         settingsDict["FFlagTaskSchedulerLimitTargetFpsTo2402"] = JsonDocument.Parse("false").RootElement;
                         settingsDict["DFFlagTaskSchedulerLimitTargetFpsTo60"] = JsonDocument.Parse("false").RootElement;
                         
