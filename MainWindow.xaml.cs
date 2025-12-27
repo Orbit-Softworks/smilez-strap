@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -87,7 +88,7 @@ namespace SmilezStrap
             DiscordPopup.Visibility = Visibility.Collapsed;
         }
 
-        private void HomeButton_Click(object sender, RoutedEventArgs e)
+        private void HomeButton_Click(object? sender, RoutedEventArgs? e)
         {
             HomeView.Visibility = Visibility.Visible;
             SettingsView.Visibility = Visibility.Collapsed;
