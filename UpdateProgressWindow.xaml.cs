@@ -32,7 +32,7 @@ namespace SmilezStrap
             {
                 MessageBox.Show($"Update failed: {ex.Message}", "Update Error", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
-                Application.Current.Shutdown();
+                Environment.Exit(1);
             }
         }
 
@@ -120,31 +120,38 @@ namespace SmilezStrap
             }
             
             UpdateStatus("Starting installer...", 95);
-            DetailsText.Text = "Launching installer and closing SmilezStrap...";
-            await Task.Delay(500);
+            DetailsText.Text = "Launching installer...";
+            await Task.Delay(300);
             
-            // Step 5: Launch installer
-            UpdateStatus("Installing update...", 98);
-            DetailsText.Text = "Please follow the installer prompts";
+            // Step 5: Launch installer with proper flags
+            UpdateStatus("Launching installer...", 98);
             
-            // Start the installer with silent/update flags if it's a setup exe
+            // Start the installer
             var processInfo = new ProcessStartInfo
             {
                 FileName = tempExePath,
                 UseShellExecute = true,
-                Arguments = "/SILENT /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS" // Try silent install flags
+                // Most installers will handle closing the app automatically
+                Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS"
             };
             
-            Process.Start(processInfo);
-            
-            await Task.Delay(500);
+            try
+            {
+                Process.Start(processInfo);
+            }
+            catch
+            {
+                // If flags don't work, try without them
+                processInfo.Arguments = "";
+                Process.Start(processInfo);
+            }
             
             UpdateStatus("Closing SmilezStrap...", 100);
-            DetailsText.Text = "Application closing now...";
-            await Task.Delay(500);
+            DetailsText.Text = "Installer is running. SmilezStrap will now close.";
+            await Task.Delay(200);
             
-            // Close the application IMMEDIATELY after starting installer
-            Application.Current.Shutdown();
+            // FORCE CLOSE IMMEDIATELY - no graceful shutdown
+            Environment.Exit(0);
         }
 
         private void UpdateStatus(string message, int progress)
