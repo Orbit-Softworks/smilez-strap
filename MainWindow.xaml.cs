@@ -221,6 +221,8 @@ namespace SmilezStrap
                 string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 string robloxVersions = Path.Combine(localAppData, "Roblox", "Versions");
                 
+                bool anySuccess = false;
+                
                 if (Directory.Exists(robloxVersions))
                 {
                     var versionDirs = Directory.GetDirectories(robloxVersions);
@@ -231,22 +233,47 @@ namespace SmilezStrap
                         
                         string clientSettingsPath = Path.Combine(clientSettingsDir, "ClientAppSettings.json");
                         
-                        // Create or update ClientAppSettings.json
-                        string jsonContent = $@"{{
-    ""DFIntTaskSchedulerTargetFps"": {fpsLimit}
-}}";
+                        // Read existing settings if they exist
+                        JsonDocument? existingSettings = null;
+                        Dictionary<string, JsonElement> settingsDict = new Dictionary<string, JsonElement>();
+                        
+                        if (File.Exists(clientSettingsPath))
+                        {
+                            try
+                            {
+                                string existingJson = File.ReadAllText(clientSettingsPath);
+                                existingSettings = JsonDocument.Parse(existingJson);
+                                
+                                foreach (var property in existingSettings.RootElement.EnumerateObject())
+                                {
+                                    settingsDict[property.Name] = property.Value.Clone();
+                                }
+                            }
+                            catch { }
+                        }
+                        
+                        // Update or add FPS settings - using multiple flags that work
+                        settingsDict["DFIntTaskSchedulerTargetFps"] = JsonDocument.Parse(fpsLimit.ToString()).RootElement;
+                        settingsDict["FFlagTaskSchedulerLimitTargetFpsTo2402"] = JsonDocument.Parse("false").RootElement;
+                        settingsDict["DFFlagTaskSchedulerLimitTargetFpsTo60"] = JsonDocument.Parse("false").RootElement;
+                        
+                        // Serialize back to JSON
+                        var options = new JsonSerializerOptions { WriteIndented = true };
+                        string jsonContent = JsonSerializer.Serialize(settingsDict, options);
                         
                         File.WriteAllText(clientSettingsPath, jsonContent);
                         Console.WriteLine($"Set FPS limit to {fpsLimit} in {clientSettingsPath}");
-                        return true;
+                        anySuccess = true;
                     }
                 }
+                
+                return anySuccess;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error with new method: {ex.Message}");
+                return false;
             }
-            return false;
         }
 
         private bool SetFpsLimitOldMethod(int fpsLimit)
