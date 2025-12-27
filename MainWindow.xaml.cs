@@ -26,6 +26,10 @@ namespace SmilezStrap
         {
             InitializeComponent();
             VersionText.Text = $"v{VERSION}";
+            
+            // Add User-Agent header to avoid 403 errors
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "SmilezStrap");
+            
             InitializeApp();
             LoadSettings();
             
@@ -34,6 +38,9 @@ namespace SmilezStrap
             
             // Auto-check for updates on startup
             CheckForUpdatesOnStartup();
+            
+            // Load About content
+            LoadAboutContent();
         }
 
         private async void CheckForUpdatesOnStartup()
@@ -51,56 +58,63 @@ namespace SmilezStrap
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
+            // Show About view instead of opening browser
+            HomeView.Visibility = Visibility.Collapsed;
+            SettingsView.Visibility = Visibility.Collapsed;
+            AboutView.Visibility = Visibility.Visible;
+            UpdateMenuButtonState(AboutButton, HomeButton, SettingsButton);
+        }
+
+        private void VisitGitHub_Click(object sender, RoutedEventArgs e)
+        {
             Process.Start(new ProcessStartInfo("https://github.com/Orbit-Softworks/smilez-strap") { UseShellExecute = true });
         }
 
         private void Discord_Click(object sender, RoutedEventArgs e)
         {
+            // Show confirmation popup instead of directly opening
+            DiscordPopup.Visibility = Visibility.Visible;
+        }
+
+        private void DiscordPopupYes_Click(object sender, RoutedEventArgs e)
+        {
+            DiscordPopup.Visibility = Visibility.Collapsed;
             Process.Start(new ProcessStartInfo("https://discord.gg/JSJcNC4Jv9") { UseShellExecute = true });
+        }
+
+        private void DiscordPopupNo_Click(object sender, RoutedEventArgs e)
+        {
+            DiscordPopup.Visibility = Visibility.Collapsed;
         }
 
         private void HomeButton_Click(object sender, RoutedEventArgs e)
         {
             HomeView.Visibility = Visibility.Visible;
             SettingsView.Visibility = Visibility.Collapsed;
-            UpdateMenuButtonState(HomeButton, SettingsButton);
+            AboutView.Visibility = Visibility.Collapsed;
+            UpdateMenuButtonState(HomeButton, SettingsButton, AboutButton);
         }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             HomeView.Visibility = Visibility.Collapsed;
             SettingsView.Visibility = Visibility.Visible;
-            UpdateMenuButtonState(SettingsButton, HomeButton);
+            AboutView.Visibility = Visibility.Collapsed;
+            UpdateMenuButtonState(SettingsButton, HomeButton, AboutButton);
         }
 
-        private void UpdateMenuButtonState(Button activeButton, Button inactiveButton)
+        private void UpdateMenuButtonState(Button activeButton, params Button[] inactiveButtons)
         {
-            // Simplify this method
-            activeButton.Background = Brushes.Transparent;
-            activeButton.Foreground = Brushes.White;
+            // Set active button style
+            activeButton.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2A2A2A"));
+            activeButton.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4444"));
             
-            inactiveButton.Background = Brushes.Transparent;
-            inactiveButton.Foreground = Brushes.White;
-            
-            // FindResource might not exist, let's use a simpler approach
-            try
+            // Set inactive buttons style
+            foreach (var button in inactiveButtons)
             {
-                // Try to get the button background from resources
-                if (this.Resources["ButtonBackground"] is Brush buttonBackground)
-                {
-                    activeButton.Background = buttonBackground;
-                }
-                else
-                {
-                    activeButton.Background = Brushes.Transparent;
-                }
+                button.Background = Brushes.Transparent;
+                button.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#999"));
             }
-            catch
-            {
-                activeButton.Background = Brushes.Transparent;
-            }
-            
-            activeButton.Foreground = Brushes.White;
         }
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
@@ -395,6 +409,42 @@ namespace SmilezStrap
             }
         }
 
+        private async void LoadAboutContent()
+        {
+            try
+            {
+                // Fetch README from GitHub
+                string readmeUrl = $"https://raw.githubusercontent.com/{GITHUB_REPO}/main/README.md";
+                string readmeContent = await httpClient.GetStringAsync(readmeUrl);
+                
+                // Convert markdown to plain text (simple conversion)
+                readmeContent = readmeContent.Replace("# ", "")
+                                           .Replace("## ", "")
+                                           .Replace("### ", "")
+                                           .Replace("**", "")
+                                           .Replace("*", "")
+                                           .Replace("`", "");
+                
+                // Remove markdown links but keep text
+                readmeContent = Regex.Replace(readmeContent, @"\[([^\]]+)\]\([^\)]+\)", "$1");
+                
+                AboutContentText.Text = readmeContent;
+            }
+            catch (Exception ex)
+            {
+                AboutContentText.Text = $"SmilezStrap - Roblox Bootstrapper\n\n" +
+                                       $"Version: {VERSION}\n\n" +
+                                       $"SmilezStrap is a custom Roblox bootstrapper that provides enhanced control over your Roblox installation.\n\n" +
+                                       $"Features:\n" +
+                                       $"• Custom FPS limiting\n" +
+                                       $"• Automatic updates\n" +
+                                       $"• Clean and modern interface\n" +
+                                       $"• Easy Roblox and Studio launching\n\n" +
+                                       $"Could not load README from GitHub. Please check your internet connection.";
+                Console.WriteLine($"Error loading about content: {ex.Message}");
+            }
+        }
+
         private async Task<bool> CheckForAppUpdate(bool showNoUpdateMessage = true)
         {
             try
@@ -453,8 +503,8 @@ namespace SmilezStrap
                 foreach (var asset in assets)
                 {
                     string? name = asset.GetProperty("name").GetString();
-                    if (name != null && name.EndsWith("SmilezStrap-Setup.exe", StringComparison.OrdinalIgnoreCase) ||
-                        name != null && name.Equals("SmilezStrap.exe", StringComparison.OrdinalIgnoreCase))
+                    if (name != null && (name.EndsWith("SmilezStrap-Setup.exe", StringComparison.OrdinalIgnoreCase) ||
+                        name.Equals("SmilezStrap.exe", StringComparison.OrdinalIgnoreCase)))
                     {
                         downloadUrl = asset.GetProperty("browser_download_url").GetString();
                         break;
@@ -503,6 +553,17 @@ del /f /q ""{tempExePath}""
                 // Close the current application
                 Application.Current.Shutdown();
                 return false;
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"HTTP Error checking for updates: {ex.Message}");
+                
+                if (showNoUpdateMessage)
+                {
+                    MessageBox.Show($"Failed to check for updates.\n\nError: {ex.Message}\n\nThis may be due to GitHub API rate limiting or network issues.\n\nPlease try again in a few minutes or check your internet connection.",
+                                    "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                return true;
             }
             catch (Exception ex)
             {
