@@ -161,12 +161,12 @@ namespace SmilezStrap
                     if (applied)
                     {
                         MessageBox.Show($"✓ FPS limit set to exactly {fpsLimit} FPS!\n\n" +
-                                      $"IMPORTANT: The FPS limit will take effect on your NEXT Roblox launch.\n\n" +
-                                      $"If Roblox is currently running:\n" +
-                                      $"1. Close ALL Roblox windows completely\n" +
-                                      $"2. Launch Roblox again from SmilezStrap\n\n" +
-                                      $"Your FPS will now be locked to exactly {fpsLimit} FPS (not rounded to 60/120/144/240).\n\n" +
-                                      $"The in-game 'Maximum Frame Rate' menu will be disabled automatically.", 
+                                      "IMPORTANT: The FPS limit will take effect on your NEXT Roblox launch.\n\n" +
+                                      "If Roblox is currently running:\n" +
+                                      "1. Close ALL Roblox windows completely\n" +
+                                      "2. Launch Roblox again from SmilezStrap\n\n" +
+                                      "Your FPS will now be locked to exactly {fpsLimit} FPS (not rounded to 60/120/144/240).\n\n" +
+                                      "The in-game 'Maximum Frame Rate' menu will be disabled automatically.", 
                                         "FPS Limit Applied Successfully", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
@@ -194,9 +194,12 @@ namespace SmilezStrap
                     // Method 1: Try new ClientSettings location (Roblox 2023+)
                     bool success = SetFpsLimitNewMethod(config.FpsLimit);
                     
+                    // Method 2: Clear LocalStorage to remove saved in-game FPS menu selection
+                    ClearRobloxLocalStorage();
+                    
                     if (!success)
                     {
-                        // Method 2: Try old GlobalSettings location (fallback)
+                        // Method 3: Try old GlobalSettings location (fallback)
                         success = SetFpsLimitOldMethod(config.FpsLimit);
                     }
                     
@@ -218,6 +221,38 @@ namespace SmilezStrap
                 }
             }
             return false;
+        }
+
+        private void ClearRobloxLocalStorage()
+        {
+            try
+            {
+                // Clear LocalStorage folder which stores in-game menu selections
+                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string localStoragePath = Path.Combine(localAppData, "Roblox", "LocalStorage");
+                
+                if (Directory.Exists(localStoragePath))
+                {
+                    // Delete all files in LocalStorage to reset in-game menu selections
+                    var files = Directory.GetFiles(localStoragePath);
+                    foreach (var file in files)
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                            Console.WriteLine($"Deleted LocalStorage file: {file}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Could not delete {file}: {ex.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error clearing LocalStorage: {ex.Message}");
+            }
         }
 
         private bool SetFpsLimitNewMethod(int fpsLimit)
@@ -272,11 +307,14 @@ namespace SmilezStrap
                             }
                         }
                         
-                        // Set the FPS limit flags - THIS IS THE EXACT COMBINATION THAT WORKS!
+                        // Set the FPS limit flags - Use proper types that serialize correctly
                         settingsDict["DFIntTaskSchedulerTargetFps"] = fpsLimit;
                         settingsDict["FFlagGameBasicSettingsFramerateCap5"] = false;
                         settingsDict["FFlagTaskSchedulerLimitTargetFpsTo2402"] = false;
                         settingsDict["DFFlagTaskSchedulerLimitTargetFpsTo60"] = false;
+                        
+                        // Additional flags to ensure custom FPS works
+                        settingsDict["DFIntTaskSchedulerTargetFpsDefault"] = fpsLimit;
                         
                         // Serialize with indentation for readability
                         var options = new JsonSerializerOptions 
