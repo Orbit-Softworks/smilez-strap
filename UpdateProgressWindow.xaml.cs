@@ -164,8 +164,15 @@ del /f /q ""{batchPath}"" 2>nul
             Dispatcher.Invoke(() =>
             {
                 StatusText.Text = message;
-                UpdateProgressBar.Value = progress;
                 ProgressText.Text = $"{progress}%";
+                
+                // Calculate width based on progress percentage
+                var parentBorder = ProgressBarFill.Parent as Border;
+                if (parentBorder != null)
+                {
+                    double maxWidth = parentBorder.ActualWidth > 0 ? parentBorder.ActualWidth : 440; // fallback width
+                    ProgressBarFill.Width = (maxWidth * progress) / 100;
+                }
             });
         }
     }
