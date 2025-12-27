@@ -161,12 +161,12 @@ namespace SmilezStrap
                     if (applied)
                     {
                         MessageBox.Show($"✓ FPS limit set to exactly {fpsLimit} FPS!\n\n" +
-                                      "IMPORTANT: The FPS limit will take effect on your NEXT Roblox launch.\n\n" +
-                                      "If Roblox is currently running:\n" +
-                                      "1. Close ALL Roblox windows completely\n" +
-                                      "2. Launch Roblox again from SmilezStrap\n\n" +
-                                      "Your FPS will now be locked to exactly {fpsLimit} FPS (not rounded to 60/120/144/240).\n\n" +
-                                      "The in-game 'Maximum Frame Rate' menu will be disabled automatically.", 
+                                      $"IMPORTANT: The FPS limit will take effect on your NEXT Roblox launch.\n\n" +
+                                      $"If Roblox is currently running:\n" +
+                                      $"1. Close ALL Roblox windows completely\n" +
+                                      $"2. Launch Roblox again from SmilezStrap\n\n" +
+                                      $"Your FPS will now be locked to exactly {fpsLimit} FPS (not rounded to 60/120/144/240).\n\n" +
+                                      $"The in-game 'Maximum Frame Rate' menu will be disabled automatically.", 
                                         "FPS Limit Applied Successfully", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
@@ -581,72 +581,11 @@ namespace SmilezStrap
                     return true;
                 }
 
-                // Download the update
-                string tempExePath = Path.Combine(Path.GetTempPath(), "SmilezStrap_Update.exe");
-                using (var responseStream = await httpClient.GetStreamAsync(downloadUrl))
-                using (var fileStream = new FileStream(tempExePath, FileMode.Create))
-                {
-                    await responseStream.CopyToAsync(fileStream);
-                }
-
-                string currentExePath = Process.GetCurrentProcess().MainModule?.FileName ??
-                                        Path.Combine(AppContext.BaseDirectory, "SmilezStrap.exe");
+                // Show update progress window
+                var updateWindow = new UpdateProgressWindow(downloadUrl, latestVersion);
+                this.Hide(); // Hide main window
+                updateWindow.ShowDialog();
                 
-                int currentProcessId = Process.GetCurrentProcess().Id;
-
-                // Create update batch script with better process handling
-                string batchPath = Path.Combine(Path.GetTempPath(), "update_smilezstrap.bat");
-                string batchContent = $@"@echo off
-echo Waiting for SmilezStrap to close...
-timeout /t 1 /nobreak >nul
-
-:waitloop
-tasklist /FI ""PID eq {currentProcessId}"" 2>NUL | find ""{currentProcessId}"" >NUL
-if NOT ERRORLEVEL 1 (
-    timeout /t 1 /nobreak >nul
-    goto waitloop
-)
-
-echo Updating SmilezStrap...
-timeout /t 1 /nobreak >nul
-
-del /f /q ""{currentExePath}"" 2>nul
-if exist ""{currentExePath}"" (
-    echo Failed to delete old file, retrying...
-    timeout /t 2 /nobreak >nul
-    del /f /q ""{currentExePath}""
-)
-
-copy /y ""{tempExePath}"" ""{currentExePath}""
-if ERRORLEVEL 1 (
-    echo Update failed! Press any key to exit.
-    pause >nul
-    exit
-)
-
-echo Starting SmilezStrap...
-start """" ""{currentExePath}""
-
-timeout /t 2 /nobreak >nul
-del /f /q ""{tempExePath}"" 2>nul
-del /f /q ""{batchPath}"" 2>nul
-";
-                File.WriteAllText(batchPath, batchContent);
-
-                // Run the update script
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = batchPath,
-                    UseShellExecute = true,
-                    CreateNoWindow = false,
-                    WindowStyle = ProcessWindowStyle.Hidden
-                });
-
-                // Give the batch file time to start
-                await Task.Delay(500);
-
-                // Close the current application
-                Application.Current.Shutdown();
                 return false;
             }
             catch (HttpRequestException ex)
