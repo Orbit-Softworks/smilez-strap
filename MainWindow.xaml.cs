@@ -160,10 +160,14 @@ namespace SmilezStrap
                     
                     if (applied)
                     {
-                        MessageBox.Show($"FPS limit set to {fpsLimit} successfully!\n\n" +
-                                      "The FPS limiter is now active and will work the next time you launch Roblox.\n\n" +
-                                      "Note: The in-game FPS setting will now be disabled automatically.", 
-                                        "FPS Limit Applied", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"✓ FPS limit set to exactly {fpsLimit} FPS!\n\n" +
+                                      "IMPORTANT: The FPS limit will take effect on your NEXT Roblox launch.\n\n" +
+                                      "If Roblox is currently running:\n" +
+                                      "1. Close ALL Roblox windows completely\n" +
+                                      "2. Launch Roblox again from SmilezStrap\n\n" +
+                                      "Your FPS will now be locked to exactly {fpsLimit} FPS (not rounded to 60/120/144/240).\n\n" +
+                                      "The in-game 'Maximum Frame Rate' menu will be disabled automatically.", 
+                                        "FPS Limit Applied Successfully", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
@@ -229,6 +233,13 @@ namespace SmilezStrap
                 if (Directory.Exists(robloxVersions))
                 {
                     var versionDirs = Directory.GetDirectories(robloxVersions);
+                    
+                    if (versionDirs.Length == 0)
+                    {
+                        Console.WriteLine("No Roblox version folders found!");
+                        return false;
+                    }
+                    
                     foreach (var versionDir in versionDirs)
                     {
                         string clientSettingsDir = Path.Combine(versionDir, "ClientSettings");
@@ -236,43 +247,60 @@ namespace SmilezStrap
                         
                         string clientSettingsPath = Path.Combine(clientSettingsDir, "ClientAppSettings.json");
                         
-                        // Read existing settings if they exist
-                        JsonDocument? existingSettings = null;
-                        Dictionary<string, JsonElement> settingsDict = new Dictionary<string, JsonElement>();
+                        // Build the settings dictionary
+                        var settingsDict = new Dictionary<string, object>();
                         
+                        // Read existing settings if they exist
                         if (File.Exists(clientSettingsPath))
                         {
                             try
                             {
                                 string existingJson = File.ReadAllText(clientSettingsPath);
-                                existingSettings = JsonDocument.Parse(existingJson);
+                                var existingSettings = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(existingJson);
                                 
-                                foreach (var property in existingSettings.RootElement.EnumerateObject())
+                                if (existingSettings != null)
                                 {
-                                    settingsDict[property.Name] = property.Value.Clone();
+                                    foreach (var kvp in existingSettings)
+                                    {
+                                        settingsDict[kvp.Key] = kvp.Value;
+                                    }
                                 }
                             }
-                            catch { }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Warning: Could not read existing settings: {ex.Message}");
+                            }
                         }
                         
-                        // Update or add FPS settings - THIS IS THE WORKING COMBINATION!
-                        settingsDict["DFIntTaskSchedulerTargetFps"] = JsonDocument.Parse(fpsLimit.ToString()).RootElement;
+                        // Set the FPS limit flags - THIS IS THE EXACT COMBINATION THAT WORKS!
+                        settingsDict["DFIntTaskSchedulerTargetFps"] = fpsLimit;
+                        settingsDict["FFlagGameBasicSettingsFramerateCap5"] = false;
+                        settingsDict["FFlagTaskSchedulerLimitTargetFpsTo2402"] = false;
+                        settingsDict["DFFlagTaskSchedulerLimitTargetFpsTo60"] = false;
                         
-                        // CRITICAL: This flag disables the in-game FPS setting override!
-                        settingsDict["FFlagGameBasicSettingsFramerateCap5"] = JsonDocument.Parse("false").RootElement;
+                        // Serialize with indentation for readability
+                        var options = new JsonSerializerOptions 
+                        { 
+                            WriteIndented = true,
+                            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                        };
                         
-                        // Disable all FPS caps
-                        settingsDict["FFlagTaskSchedulerLimitTargetFpsTo2402"] = JsonDocument.Parse("false").RootElement;
-                        settingsDict["DFFlagTaskSchedulerLimitTargetFpsTo60"] = JsonDocument.Parse("false").RootElement;
-                        
-                        // Serialize back to JSON
-                        var options = new JsonSerializerOptions { WriteIndented = true };
                         string jsonContent = JsonSerializer.Serialize(settingsDict, options);
                         
                         File.WriteAllText(clientSettingsPath, jsonContent);
-                        Console.WriteLine($"Set FPS limit to {fpsLimit} in {clientSettingsPath}");
+                        Console.WriteLine($"✓ Applied FPS limit {fpsLimit} to: {versionDir}");
+                        Console.WriteLine($"  File: {clientSettingsPath}");
                         anySuccess = true;
                     }
+                    
+                    if (anySuccess)
+                    {
+                        Console.WriteLine($"Successfully applied FPS limit to {versionDirs.Length} version folder(s)");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Roblox Versions folder not found!");
                 }
                 
                 return anySuccess;
