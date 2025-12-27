@@ -562,18 +562,46 @@ namespace SmilezStrap
                 }
 
                 string currentExePath = Process.GetCurrentProcess().MainModule?.FileName ??
-                                        System.AppContext.BaseDirectory + "SmilezStrap.exe";
+                                        Path.Combine(AppContext.BaseDirectory, "SmilezStrap.exe");
+                
+                int currentProcessId = Process.GetCurrentProcess().Id;
 
-                // Create update batch script
+                // Create update batch script with better process handling
                 string batchPath = Path.Combine(Path.GetTempPath(), "update_smilezstrap.bat");
-                string batchContent = $@"
-@echo off
-timeout /t 2 /nobreak >nul
-del /f /q ""{currentExePath}""
+                string batchContent = $@"@echo off
+echo Waiting for SmilezStrap to close...
+timeout /t 1 /nobreak >nul
+
+:waitloop
+tasklist /FI ""PID eq {currentProcessId}"" 2>NUL | find ""{currentProcessId}"" >NUL
+if NOT ERRORLEVEL 1 (
+    timeout /t 1 /nobreak >nul
+    goto waitloop
+)
+
+echo Updating SmilezStrap...
+timeout /t 1 /nobreak >nul
+
+del /f /q ""{currentExePath}"" 2>nul
+if exist ""{currentExePath}"" (
+    echo Failed to delete old file, retrying...
+    timeout /t 2 /nobreak >nul
+    del /f /q ""{currentExePath}""
+)
+
 copy /y ""{tempExePath}"" ""{currentExePath}""
+if ERRORLEVEL 1 (
+    echo Update failed! Press any key to exit.
+    pause >nul
+    exit
+)
+
+echo Starting SmilezStrap...
 start """" ""{currentExePath}""
-del /f /q ""{batchPath}""
-del /f /q ""{tempExePath}""
+
+timeout /t 2 /nobreak >nul
+del /f /q ""{tempExePath}"" 2>nul
+del /f /q ""{batchPath}"" 2>nul
 ";
                 File.WriteAllText(batchPath, batchContent);
 
@@ -582,8 +610,12 @@ del /f /q ""{tempExePath}""
                 {
                     FileName = batchPath,
                     UseShellExecute = true,
-                    CreateNoWindow = true
+                    CreateNoWindow = false,
+                    WindowStyle = ProcessWindowStyle.Hidden
                 });
+
+                // Give the batch file time to start
+                await Task.Delay(500);
 
                 // Close the current application
                 Application.Current.Shutdown();
